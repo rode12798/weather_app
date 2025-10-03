@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather Finder.com</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f8ff; text-align: center; padding: 40px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px gray; display: inline-block; margin-top: 20px; }
+        input, button { padding: 10px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🌤 Weather Finder.com</h1>
+    <form method="POST">
+        <input type="text" name="city" placeholder="Enter City" required>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if weather %}
+        <div class="card">
+            {% if weather.error %}
+                <h3 style="color:red">{{ weather.error }}</h3>
+            {% else %}
+                <h2>{{ weather.city }}</h2>
+                <p>🌡 Temperature: {{ weather.temperature }} °C</p>
+                <p>💧 Humidity: {{ weather.humidity }} %</p>
+                <p>☁ Condition: {{ weather.description }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</body>
+</html>

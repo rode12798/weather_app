@@ -1,0 +1,22 @@
+body {
+  background-color: #eef7ff;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.forecast {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.forecast-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  width: 120px;
+  text-align: center;
+}

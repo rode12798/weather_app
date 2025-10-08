@@ -1,22 +1,49 @@
+/* === Enhanced Clean Styling (No Hover Effects) === */
+
+/* Page background */
 body {
-  background-color: #eef7ff;
-  font-family: Arial, sans-serif;
-  text-align: center;
+    background: linear-gradient(to bottom right, #dbefff, #f7fbff);
 }
 
-.forecast {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  flex-wrap: wrap;
-  margin-top: 20px;
+/* Main weather card */
+.weather-card {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    border: 1px solid #dbe2e8;
+    background-color: white;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 600px;
 }
 
+/* Forecast cards */
 .forecast-card {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-  width: 120px;
-  text-align: center;
+    opacity: 0;
+    animation: fadeIn 0.8s ease forwards;
+    border-radius: 12px;
+    border: 1px solid #e0e4e8;
+    background-color: #ffffff;
+    padding: 10px;
+    text-align: center;
+    margin: 10px;
+}
+
+/* Section spacing */
+section {
+    margin-top: 25px;
+    margin-bottom: 25px;
+}
+
+/* Headings */
+h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #1d3557;
+}
+
+/* Smooth fade animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

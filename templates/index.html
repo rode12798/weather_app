@@ -113,5 +113,89 @@
     </script>
     {% endif %}
     {% endif %}
+<!-- 🔽 Paste below this comment at the END of your HTML file -->
+
+<!-- Floating Voice Assistant -->
+<button id="mic-btn">🎙️</button>
+<div id="chatbox">
+  <p id="userQuery"></p>
+  <p id="aiReply"></p>
+</div>
+
+<style>
+#mic-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #0078ff;
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 50%;
+  font-size: 22px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+#mic-btn:hover {
+  background-color: #005fd1;
+}
+#chatbox {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  padding: 12px 16px;
+  width: 250px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  display: none;
+}
+#chatbox p {
+  margin: 5px 0;
+}
+</style>
+
+<script>
+const micBtn = document.getElementById('mic-btn');
+const chatbox = document.getElementById('chatbox');
+const userQuery = document.getElementById('userQuery');
+const aiReply = document.getElementById('aiReply');
+
+micBtn.addEventListener('click', () => {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-IN';
+    recognition.start();
+
+    recognition.onstart = () => {
+        chatbox.style.display = 'block';
+        userQuery.innerText = "🎤 Listening...";
+        aiReply.innerText = "";
+    };
+
+    recognition.onresult = function(event) {
+        const query = event.results[0][0].transcript;
+        userQuery.innerText = "🗣️ You: " + query;
+
+        // Send query to backend
+        fetch('/voice_query', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({query: query})
+        })
+        .then(res => res.json())
+        .then(data => {
+            aiReply.innerText = "🤖 AI: " + data.reply;
+            const utterance = new SpeechSynthesisUtterance(data.reply);
+            utterance.lang = 'en-IN';
+            speechSynthesis.speak(utterance);
+        })
+        .catch(err => {
+            aiReply.innerText = "Error: " + err;
+        });
+    };
+});
+</script>
 </body>
 </html>

@@ -1,17 +1,21 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import requests
 import os
 from collections import OrderedDict
 from datetime import datetime
+import openai
 
 app = Flask(__name__, template_folder="templates")
 
-# Use environment variable if available; otherwise place your key here (for testing)
+# --- Keys ---
 API_KEY = os.getenv("OPENWEATHER_API_KEY", "cf22a8a215106e50b0b6f60f7e511a48")
+openai.api_key = os.getenv("OPENAI_API_KEY", "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")
 
+# --- URLs ---
 CURRENT_URL = "http://api.openweathermap.org/data/2.5/weather"
 FORECAST_URL = "http://api.openweathermap.org/data/2.5/forecast"
 
+# --- Helpers ---
 def get_current_weather(city):
     params = {"q": city, "appid": API_KEY, "units": "metric"}
     r = requests.get(CURRENT_URL, params=params)
@@ -28,8 +32,8 @@ def get_current_weather(city):
     }
     return weather, None
 
+
 def get_5day_forecast(city):
-    """Return list of daily forecast dicts (date, temp, desc, icon) and arrays for chart."""
     params = {"q": city, "appid": API_KEY, "units": "metric"}
     r = requests.get(FORECAST_URL, params=params)
     if r.status_code != 200:
@@ -37,79 +41,76 @@ def get_5day_forecast(city):
     data = r.json()
     items = data.get("list", [])
 
-    # Pick one forecast per day: choose the entry with time '12:00:00' if present, else first for that date
     daily = OrderedDict()
     for it in items:
-        dt_txt = it["dt_txt"]               # e.g. "2025-10-04 12:00:00"
-        date_str = dt_txt.split(" ")[0]     # "2025-10-04"
-        time_str = dt_txt.split(" ")[1]     # "12:00:00"
+        dt_txt = it["dt_txt"]
+        date_str, time_str = dt_txt.split(" ")
         if date_str not in daily:
             daily[date_str] = it
-        # Prefer 12:00 entry if available (overwrite)
         if time_str == "12:00:00":
             daily[date_str] = it
 
-    # Take the next 5 unique days (skip today if needed)
-    forecast_list = []
-    chart_labels = []
-    chart_temps = []
-    count = 0
-    for date_str, it in daily.items():
-        if count >= 5:
+    forecast_list, chart_labels, chart_temps = [], [], []
+    for i, (date_str, it) in enumerate(daily.items()):
+        if i >= 5:
             break
         temp = it["main"]["temp"]
         desc = it["weather"][0]["description"].title()
         icon = it["weather"][0]["icon"]
-        # Convert date to readable form
-        try:
-            d = datetime.strptime(date_str, "%Y-%m-%d")
-            label = d.strftime("%a %d %b")
-        except:
-            label = date_str
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+        label = d.strftime("%a %d %b")
         forecast_list.append({"date": label, "temp": temp, "desc": desc, "icon": icon})
         chart_labels.append(label)
         chart_temps.append(temp)
-        count += 1
 
     return {"forecast": forecast_list, "labels": chart_labels, "temps": chart_temps}, None
 
+
+# --- Main Route ---
 @app.route("/", methods=["GET", "POST"])
 def index():
-    weather = None
-    forecast = None
-    error = None
-    city = "Mumbai"  # default city to show on first load
+    weather = forecast = error = None
+    city = request.form.get("city", "").strip() or request.args.get("city", "Mumbai")
 
-    # If user submitted a city via form
-    if request.method == "POST":
-        city = request.form.get("city", "").strip() or city
-    else:
-        # allow query param ?city=Delhi
-        city = request.args.get("city", city)
-
-    # Get current weather
     try:
         weather, err = get_current_weather(city)
         if err:
             error = err.get("message", "Could not fetch current weather.")
-    except Exception as e:
-        error = str(e)
-
-    # Get forecast
-    if not error:
-        try:
+        if not error:
             forecast, ferr = get_5day_forecast(city)
             if ferr:
                 error = ferr.get("message", "Could not fetch forecast.")
-        except Exception as e:
-            error = str(e)
+    except Exception as e:
+        error = str(e)
 
-    return render_template("index.html",
-                           weather=weather,
-                           forecast_data=forecast,
-                           error=error,
-                           api_key=API_KEY)  # api_key not needed on client, included for completeness
+    return render_template("index.html", weather=weather, forecast_data=forecast, error=error)
 
+
+# --- Voice + Chatbot Route ---
+@app.route('/voice_query', methods=['POST'])
+def voice_query():
+    data = request.get_json()
+    query = data.get("query", "").lower()
+
+    if "weather" in query or "temperature" in query:
+        # detect city from query
+        words = query.split()
+        city = next((w.capitalize() for w in words if w.capitalize() not in ["Weather", "Temperature", "In", "The", "What’s", "What's", "Is", "Of"]), "Mumbai")
+
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
+        res = requests.get(url).json()
+        if "main" in res:
+            temp = res["main"]["temp"]
+            desc = res["weather"][0]["description"]
+            ai_text = f"The temperature in {city} is {temp}°C with {desc}."
+        else:
+            ai_text = f"Sorry, I couldn't fetch the weather for {city}."
+    else:
+        ai_text = "Sorry, I can only answer weather-related questions right now."
+
+    return jsonify({"reply": ai_text})
+
+
+# --- Flask Run ---
 if __name__ == "__main__":
-    # local debugging
     app.run(host="0.0.0.0", port=5000, debug=True)
